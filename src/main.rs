@@ -9,11 +9,13 @@ mod utils;
 
 use crate::ui::grid::draw_grid;
 use crate::ui::label::Label;
+use crate::ui::listview::ListView;
+use crate::ui::messagebox::MessageBox;
+use crate::ui::messagebox::{MessageBoxResult};
 use crate::ui::text_button::TextButton;
 use crate::ui::text_input::TextInput;
 use macroquad::prelude::*;
-use crate::ui::listview::ListView;
-use crate::ui::messagebox::MessageBox;
+use miniquad::date;
 
 /// Set up window settings before the app runs
 fn window_conf() -> Conf {
@@ -31,16 +33,38 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    rand::srand(date::now() as u64);
     let lbl_songs = Label::new("Your Songs", 400.0, 100.0, 50);
-    let mut songs = vec!["Thriller - Michael Jackson".to_string(), "Stayin' Alive - Bee Gees".to_string(), "Bohemian Rhapsody - Queen".to_string(), "Like a Rolling Stone - Bob Dylan".to_string(), "I Will Always Love You - Whitney Houston".to_string()];
+    let mut songs = vec![
+        "Thriller - Michael Jackson".to_string(),
+        "Stayin' Alive - Bee Gees".to_string(),
+        "Bohemian Rhapsody - Queen".to_string(),
+        "Like a Rolling Stone - Bob Dylan".to_string(),
+        "I Will Always Love You - Whitney Houston".to_string(),
+    ];
     let mut song_list = ListView::new(&songs, 100.0, 200.0, 30);
     let mut txt_song = TextInput::new(100.0, 400.0, 400.0, 50.0, 25.0);
     let mut btn_exit = TextButton::new(750.0, 700.0, 200.0, 50.0, "Exit", RED, ORANGE, 30);
     let btn_addsong = TextButton::new(100.0, 500.0, 200.0, 50.0, "Add Song", GRAY, GREEN, 30);
     let btn_removesong = TextButton::new(350.0, 500.0, 200.0, 50.0, "Remove Song", GRAY, RED, 30);
+    let btn_sort_alpha = TextButton::new(100.0, 600.0, 200.0, 50.0, "Sort Alphabetically", GRAY, BLUE, 20);
+    let btn_reverse_sort_alpha = TextButton::new(350.0, 600.0, 200.0, 50.0, "Sort Reverse Alphabetically", GRAY, ORANGE, 15);
+    let btn_random_song = TextButton::new(100.0, 700.0, 200.0, 50.0, "Random Song", GRAY, PURPLE, 30);
+    let btn_clear_list = TextButton::new(350.0, 700.0, 200.0, 50.0, "Clear List", GRAY, RED, 30);
+    let mut lbl_out = Label::new("", 700.0, 150.0, 30);
     let mut error_box = MessageBox::info("ERROR", "Please Type a Song Name.");
+    let mut remove_error_box = MessageBox::info("ERROR", "Song Not Found");
+    let mut custom_dialog = MessageBox::custom(
+        "WARNING!",
+        "Are you sure you want to clear your song list?",
+        vec!["Back", "Yes"],
+        Some(1), // Default to "Normal"
+    );
+    lbl_out.with_fixed_size(250.0, 758.0);
+    
     song_list.with_max_visible_items(5);
     txt_song.set_max_chars(50);
+
     loop {
         clear_background(WHITE);
         draw_grid(50.0, BROWN);
@@ -49,8 +73,7 @@ async fn main() {
                 songs.push(txt_song.get_text().to_string());
                 song_list.clear();
                 song_list.add_items(&songs);
-            }
-            else {
+            } else {
                 error_box.show();
             }
         }
@@ -60,27 +83,57 @@ async fn main() {
                 for i in 0..songs.len() {
                     if songs[i] == txt_song.get_text() {
                         songs.remove(i);
-                        found == true;
+                        found = true;
                         break;
                     }
                 }
                 if found == false {
-                    
+                    remove_error_box.show();
                 }
                 song_list.clear();
                 song_list.add_items(&songs);
-            }
-            else {
+            } else {
                 error_box.show();
             }
+        }
+        if btn_sort_alpha.click() {
+            songs.sort();
+            song_list.clear();
+            song_list.add_items(&songs);
+        }
+        if btn_reverse_sort_alpha.click() {
+            songs.sort();
+            songs.reverse();
+            song_list.clear();
+            song_list.add_items(&songs);
+        }
+        if btn_random_song.click() {
+            let random_int = rand::gen_range(0, songs.len());
+            lbl_out.set_text(&format!("Random Song: \n{}", songs[random_int]));
+        }
+        if btn_clear_list.click() {
+            custom_dialog.show();
+            if let Some(result) = custom_dialog.draw() {
+        match result {
+        MessageBoxResult::ButtonPressed(0) => {
+
+        },
+        MessageBoxResult::ButtonPressed(1) => {
+            
+        }
+    }
+}
         }
         if btn_exit.click() {
             break;
         }
         txt_song.draw();
+        lbl_out.draw();
         lbl_songs.draw();
         song_list.draw();
+        remove_error_box.draw();
         error_box.draw();
+        custom_dialog.draw();
         next_frame().await;
     }
 }
