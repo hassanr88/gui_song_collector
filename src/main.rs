@@ -7,11 +7,10 @@ Program Details: a program to help you to keep track of your Song collection.
 mod ui;
 mod utils;
 
-use crate::ui::grid::draw_grid;
+//use crate::ui::grid::draw_grid;
 use crate::ui::label::Label;
 use crate::ui::listview::ListView;
-use crate::ui::messagebox::MessageBox;
-use crate::ui::messagebox::{MessageBoxResult};
+use crate::ui::messagebox::{MessageBox, MessageBoxResult};
 use crate::ui::text_button::TextButton;
 use crate::ui::text_input::TextInput;
 use macroquad::prelude::*;
@@ -44,7 +43,7 @@ async fn main() {
     ];
     let mut song_list = ListView::new(&songs, 100.0, 200.0, 30);
     let mut txt_song = TextInput::new(100.0, 400.0, 400.0, 50.0, 25.0);
-    let mut btn_exit = TextButton::new(750.0, 700.0, 200.0, 50.0, "Exit", RED, ORANGE, 30);
+    let btn_exit = TextButton::new(750.0, 700.0, 200.0, 50.0, "Exit", RED, ORANGE, 30);
     let btn_addsong = TextButton::new(100.0, 500.0, 200.0, 50.0, "Add Song", GRAY, GREEN, 30);
     let btn_removesong = TextButton::new(350.0, 500.0, 200.0, 50.0, "Remove Song", GRAY, RED, 30);
     let btn_sort_alpha = TextButton::new(100.0, 600.0, 200.0, 50.0, "Sort Alphabetically", GRAY, BLUE, 20);
@@ -52,27 +51,25 @@ async fn main() {
     let btn_random_song = TextButton::new(100.0, 700.0, 200.0, 50.0, "Random Song", GRAY, PURPLE, 30);
     let btn_clear_list = TextButton::new(350.0, 700.0, 200.0, 50.0, "Clear List", GRAY, RED, 30);
     let mut lbl_out = Label::new("", 700.0, 150.0, 30);
+    let mut lbl_song_count = Label::new("", 100.0, 100.0, 30);
     let mut error_box = MessageBox::info("ERROR", "Please Type a Song Name.");
     let mut remove_error_box = MessageBox::info("ERROR", "Song Not Found");
-    let mut custom_dialog = MessageBox::custom(
-        "WARNING!",
-        "Are you sure you want to clear your song list?",
-        vec!["Back", "Yes"],
-        Some(1), // Default to "Normal"
-    );
+    let mut confirm_box = MessageBox::confirm("Confirm Action", "Are you sure you want to clear your list?");
     lbl_out.with_fixed_size(250.0, 758.0);
-    
+    song_list.with_colors(BLACK, Some(WHITE), Some(RED));
     song_list.with_max_visible_items(5);
     txt_song.set_max_chars(50);
 
     loop {
         clear_background(WHITE);
-        draw_grid(50.0, BROWN);
+        //draw_grid(50.0, BROWN);
+        lbl_song_count.set_text(&format!("Song Count: {}", songs.len()));
         if btn_addsong.click() {
             if !txt_song.get_text().is_empty() {
                 songs.push(txt_song.get_text().to_string());
                 song_list.clear();
                 song_list.add_items(&songs);
+                txt_song.set_text("");
             } else {
                 error_box.show();
             }
@@ -84,6 +81,7 @@ async fn main() {
                     if songs[i] == txt_song.get_text() {
                         songs.remove(i);
                         found = true;
+                        txt_song.set_text("");
                         break;
                     }
                 }
@@ -112,28 +110,37 @@ async fn main() {
             lbl_out.set_text(&format!("Random Song: \n{}", songs[random_int]));
         }
         if btn_clear_list.click() {
-            custom_dialog.show();
-            if let Some(result) = custom_dialog.draw() {
-        match result {
-        MessageBoxResult::ButtonPressed(0) => {
-
-        },
-        MessageBoxResult::ButtonPressed(1) => {
-            
+            confirm_box.show();
         }
-    }
-}
-        }
+        if let Some(result) = confirm_box.draw() {
+                match result {
+                    MessageBoxResult::ButtonPressed(0) => {
+                        songs.clear();
+                        song_list.clear();
+                        song_list.add_items(&songs);
+                    }
+                    #[allow(unused)]
+                    MessageBoxResult::ButtonPressed(_) => {
+                        // IMPORTANT: This catch-all pattern is required by the Rust compiler
+                        // even for simple confirm dialogs to ensure all possible values are covered
+                    }
+                    MessageBoxResult::Closed => {
+                        // Dialog closed with X or Escape key
+                        // Handle as cancel...
+                    }
+                }
+            }
         if btn_exit.click() {
             break;
         }
         txt_song.draw();
         lbl_out.draw();
         lbl_songs.draw();
+        lbl_song_count.draw();
         song_list.draw();
         remove_error_box.draw();
         error_box.draw();
-        custom_dialog.draw();
+        confirm_box.draw();
         next_frame().await;
     }
 }
